@@ -4,7 +4,7 @@ import sqlite3
 from typing import Any
 
 from erring import crud
-from erring.llm import LLMCallable, call_openai_text, parse_reflection_json
+from erring.llm import LLMCallable, call_openai_json, parse_reflection_json
 from erring.models import ReflectionDecision
 
 
@@ -13,7 +13,7 @@ def run_reflection_call(
     *,
     completion_fn: LLMCallable | None = None,
 ) -> ReflectionDecision:
-    raw = (completion_fn or call_openai_text)(messages)
+    raw = (completion_fn or call_openai_json)(messages)
     return parse_reflection_json(raw)
 
 
@@ -109,4 +109,3 @@ def execute_reflection_action(
         )
 
     raise ValueError(f"Unhandled reflection action: {action}")
-

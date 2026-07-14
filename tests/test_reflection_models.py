@@ -38,3 +38,31 @@ def test_parse_reflection_json():
     assert decision.action == "READ_COMMITMENTS"
     assert decision.arguments["time_status"] == "untimed"
 
+
+def test_parse_reflection_json_from_markdown_fence():
+    decision = parse_reflection_json(
+        """
+        ```json
+        {
+          "action": "NO_ACTION",
+          "reason": "The user is greeting Erring."
+        }
+        ```
+        """
+    )
+
+    assert decision.action == "NO_ACTION"
+
+
+def test_parse_reflection_json_from_surrounding_text():
+    decision = parse_reflection_json(
+        """
+        Here is the JSON:
+        {
+          "action": "READ_PROJECTS",
+          "arguments": {"status": "active"}
+        }
+        """
+    )
+
+    assert decision.action == "READ_PROJECTS"
