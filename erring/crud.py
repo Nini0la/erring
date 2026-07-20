@@ -52,6 +52,13 @@ def get_user(conn: sqlite3.Connection, user_id: int) -> dict[str, Any]:
     return _fetch_one(conn, "SELECT * FROM users WHERE id = ?", (user_id,))
 
 
+def get_or_create_default_user(conn: sqlite3.Connection) -> dict[str, Any]:
+    row = conn.execute("SELECT * FROM users ORDER BY id ASC LIMIT 1").fetchone()
+    if row is not None:
+        return dict(row)
+    return create_user(conn)
+
+
 def update_user_onboarding_status(
     conn: sqlite3.Connection, user_id: int, onboarding_status: str
 ) -> dict[str, Any]:
@@ -66,6 +73,62 @@ def update_user_onboarding_status(
     )
     conn.commit()
     return get_user(conn, user_id)
+
+
+def get_telegram_identity(
+    conn: sqlite3.Connection, telegram_user_id: int
+) -> dict[str, Any] | None:
+    row = conn.execute(
+        "SELECT * FROM telegram_identities WHERE telegram_user_id = ?",
+        (telegram_user_id,),
+    ).fetchone()
+    return dict(row) if row is not None else None
+
+
+def link_telegram_identity(
+    conn: sqlite3.Connection,
+    *,
+    user_id: int,
+    telegram_user_id: int,
+    telegram_chat_id: int,
+    username: str | None = None,
+    first_name: str | None = None,
+) -> dict[str, Any]:
+    now = utc_now()
+    existing = get_telegram_identity(conn, telegram_user_id)
+    if existing is None:
+        conn.execute(
+            """
+            INSERT INTO telegram_identities (
+              user_id, telegram_user_id, telegram_chat_id, username, first_name,
+              created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                user_id,
+                telegram_user_id,
+                telegram_chat_id,
+                username,
+                first_name,
+                now,
+                now,
+            ),
+        )
+    else:
+        conn.execute(
+            """
+            UPDATE telegram_identities
+            SET telegram_chat_id = ?, username = ?, first_name = ?, updated_at = ?
+            WHERE telegram_user_id = ?
+            """,
+            (telegram_chat_id, username, first_name, now, telegram_user_id),
+        )
+    conn.commit()
+    identity = get_telegram_identity(conn, telegram_user_id)
+    if identity is None:
+        raise LookupError("Telegram identity was not persisted")
+    return identity
 
 
 def get_or_create_uncategorized_project(

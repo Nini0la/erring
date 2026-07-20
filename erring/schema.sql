@@ -8,6 +8,20 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS telegram_identities (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  telegram_user_id INTEGER NOT NULL UNIQUE,
+  telegram_chat_id INTEGER NOT NULL,
+  username TEXT,
+  first_name TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_telegram_identities_user
+  ON telegram_identities(user_id);
+
 CREATE TABLE IF NOT EXISTS conversation_messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -98,4 +112,3 @@ CREATE TABLE IF NOT EXISTS operation_log (
 
 CREATE INDEX IF NOT EXISTS idx_operation_log_user_created
   ON operation_log(user_id, created_at);
-
